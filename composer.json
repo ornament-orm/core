@@ -10,8 +10,7 @@
         }
     ],
     "require": {
-        "php": ">=7.3",
-        "zeptech/annotations": "^1.1"
+        "php": ">=7.3"
     },
     "require-dev": {
         "gentry/gentry": "^0.14.0",
