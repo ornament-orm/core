@@ -2,7 +2,6 @@
 
 namespace Ornament\Core;
 
-use zpt\anno\Annotations;
 use ReflectionClass;
 use ReflectionProperty;
 use ReflectionException;
@@ -252,19 +251,19 @@ trait Model
         static $cache = [];
         if (!$cache) {
             $reflection = new ReflectionClass($this);
-            $cache['class'] = new Annotations($reflection);
+            $cache['class'] = $reflection->getAttributes();
             $cache['methods'] = [];
             foreach ($reflection->getMethods() as $method) {
-                $anns = new Annotations($method);
-                if (isset($anns['get'])) {
-                    $cache['methods'][$anns['get']] = $method->getName();
+                $attributes = $method->getAttributes(Getter::class);
+                if ($attributes) {
+                    $cache['methods'][$attributes->newInstance()->property] = $method->getName();
                 }
             }
             $properties = $reflection->getProperties((ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED) & ~ReflectionProperty::IS_STATIC);
             $cache['properties'] = [];
             foreach ($properties as $property) {
                 $name = $property->getName();
-                $anns = new Annotations($property);
+                $anns = [];
                 if ((float)phpversion() >= 7.4) {
                     if ($type = $property->getType()) {
                         $anns['var'] = $type->getName();
