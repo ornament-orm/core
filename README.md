@@ -144,7 +144,7 @@ definition, read-only).
 
 An example of a virtual property would be a model with a `firstname` and
 `lastname` property, and a getter for `fullname`. To mark a method as a getter,
-annotate it with `@get {property}`:
+attribute it with `#[\Ornament\Core\Getter("property"]`:
 
 ```php
 <?php
@@ -153,7 +153,7 @@ class MyModel
 {
     // ...
 
-    /** @get fullname */
+    #[\Ornament\Core\Getter("fullname")]
     protected function exampleGetter() : string
     {
         return $this->firstname.' '.$this->lastname;
@@ -167,40 +167,11 @@ them a reasonably descriptive name for your own sanity (in the above example,
 `getFullname` would have been better).
 
 ## Decorator classes
-For more complex types you can also annotate a property with a _decorator
-class_. An example where this could be useful is e.g. to automatically wrap a
-property containing a timezone in an instance of `Carbon\Carbon`.
+Ornament automatically transforms values according to typehints specified in
+your model's source code. Guess what: this also works for _classes_!
 
-Specifying a decorator class is as simple as annotating the property with
-`@var CLASSNAME`:
-
-```php
-<?php
-
-class MyModel
-{
-    // ...
-
-    /**
-     * @var Carbon\Carbon
-     * @construct "Amsterdam/Europe"
-     */
-    public $date;
-}
-```
-
-> Note that you _must_ use the fully qualified classname in your `@var`
-> annotation; PHP cannot know (well, at least not without doing scary voodoo on
-> your sourcecode) which namespaces were imported. If it makes you (or your
-> editor happy) you may prefix with `\`, but I personally find that ugly and
-> it's implicit anyway since functions like `class_exists` _always_ work on a
-> fully qualified namespace.
-
-Each Decorator class _must_ accept the underlying current value as its first
-parameter. Additional construction parameters can be defined via annotations
-like in the example.
-
-If you're on PHP 7.4, you can of course simply type hint the property:
+An example where this could be useful is e.g. to automatically wrap a property
+containing a timezone in an instance of `Carbon\Carbon`.
 
 ```php
 <?php
@@ -211,26 +182,13 @@ class MyModel
 {
     // ...
 
-    /**
-     * @construct "Amsterdam/Europe"
-     */
     public Carbon $date;
 }
 ```
 
-Note that constructor arguments can still be passed this way.
-
 If the class you want to use does _not_ take the underlying value as its first
-parameter, you'll need to wrap it. You can extend `Ornament\Core\Decorator` for
-that.
-
-> Caution: annotations are returned as either "the actual value" or, if
-> multiple annotations of the same name were specified, an array. A corner case
-> is when you have a single additional argument which happens to be an array
-> (since it will be seen as multiple constructor arguments).
->
-> In these corner cases, just supply a second (dummy) constructor argument to
-> force the correct values.
+(or only) parameter, you'll need to wrap it. You can extend
+`Ornament\Core\Decorator` for that.
 
 It is recommended that a decorating class also supports a `__toString` method,
 so one can seamlessly pass decorated properties back to a storage engine.
@@ -294,7 +252,7 @@ or `delete()` methods or whatever.
 Having said that, you're not completely on your own. Models may use the
 `Ornament\Core\State` trait to expose some convenience methods:
 
-- `isDirty()`: was the model changed since the last load?
+- `isDirty()`: was the model changed since the last instantiation?
 - `isModified(string $property)`: specifically check if a property was modified.
 - `isPristine()`: the opposite of `isDirty`.
 - `markPristine()`: manually mark the model as pristine, e.g. after storing it.
