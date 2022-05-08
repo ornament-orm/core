@@ -256,7 +256,9 @@ trait Model
             foreach ($reflection->getMethods() as $method) {
                 $attributes = $method->getAttributes(Getter::class);
                 if ($attributes) {
-                    $cache['methods'][$attributes->newInstance()->property] = $method->getName();
+                    foreach ($attributes as $attribute) {
+                        $cache['methods'][$attribute->newInstance()->property] = $method->getName();
+                    }
                 }
             }
             $properties = $reflection->getProperties((ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED) & ~ReflectionProperty::IS_STATIC);
