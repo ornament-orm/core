@@ -220,7 +220,7 @@ trait Model
      * @param mixed $value
      * @return mixed
      */
-    protected function ornamentalize(string $field, $value)
+    protected function ornamentalize(string $field, mixed $value) : mixed
     {
         $cache = $this->__getModelPropertyDecorations();
         if (!isset($cache['properties'][$field])) {
@@ -229,6 +229,9 @@ trait Model
         if (self::checkBaseType($cache['properties'][$field]['var'] ?? null)) {
             // As of PHP 7.4, type coercion is implicit when properties have
             // been correctly type hinted.
+            if (!strlen($value ?? '') && $cache['properties'][$field]['isNullable'] ?? false) {
+                return null;
+            }
             if ((float)phpversion() < 7.4) {
                 settype($value, $cache['properties'][$field]['var']);
             }
@@ -269,6 +272,7 @@ trait Model
                 if ((float)phpversion() >= 7.4) {
                     if ($type = $property->getType()) {
                         $anns['var'] = $type->getName();
+                        $anns['isNullable'] = $type->allowsNull();
                     }
                 }
                 $anns['readOnly'] = $property->isProtected();
