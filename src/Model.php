@@ -240,7 +240,7 @@ trait Model
             if (!class_exists($cache['properties'][$field]['var'])) {
                 throw new DecoratorClassNotFoundException($cache['properties'][$field]['var']);
             }
-            if (!array_key_exists('Ornament\Core\DecoratorInterface', class_implements($cache['properties'][$field]['var']))) {
+            if (!array_key_exists(Ornament\Core\DecoratorInterface::class, class_implements($cache['properties'][$field]['var']))) {
                 throw new DecoratorClassMustImplementDecoratorInterfaceException($cache['properties'][$field]['var']);
             }
             return new $cache['properties'][$field]['var']($value);
