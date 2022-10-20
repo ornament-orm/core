@@ -9,6 +9,7 @@ use SplObjectStorage;
 use StdClass;
 use Error;
 use Traversable;
+use UnitEnum;
 
 /**
  * `use` this trait to turn any vanilla class into an Ornament model.
@@ -37,15 +38,8 @@ trait Model
     {
         $cache = $this->__getModelPropertyDecorations();
         foreach ($cache['properties'] as $field => $annotations) {
-            $reflection = new ReflectionProperty($this, $field);
-            $decorated = $this->ornamentalize($field, $this->$field ?? null);
-            if (is_object($decorated)) {
-                $this->$field = $decorated;
-            }
-        }
-        if (isset($input)) {
-            foreach ($input as $key => $value) {
-                $this->$key = $this->ornamentalize($key, $value);
+            if (isset($this->$field) || isset($input[$field])) {
+                $this->$field = $this->ornamentalize($field, $input[$field] ?? $this->$field);
             }
         }
         $this->__initial = clone $this;
@@ -240,10 +234,21 @@ trait Model
             if (!class_exists($cache['properties'][$field]['var'])) {
                 throw new DecoratorClassNotFoundException($cache['properties'][$field]['var']);
             }
-            if (!array_key_exists(Ornament\Core\DecoratorInterface::class, class_implements($cache['properties'][$field]['var']))) {
+            if (!$cache['properties'][$field]['isEnum']
+                && !array_key_exists(DecoratorInterface::class, class_implements($cache['properties'][$field]['var']))
+            ) {
                 throw new DecoratorClassMustImplementDecoratorInterfaceException($cache['properties'][$field]['var']);
             }
-            return new $cache['properties'][$field]['var']($value);
+            if ($cache['properties'][$field]['isEnum']) {
+                $enum = $cache['properties'][$field]['var'];
+                if ($cache['properties'][$field]['isNullable']) {
+                    return $enum::tryFrom($value);
+                } else {
+                    return $enum::from($value);
+                }
+            } else {
+                return new $cache['properties'][$field]['var']($value);
+            }
         } else {
             return $value;
         }
@@ -273,6 +278,7 @@ trait Model
                     if ($type = $property->getType()) {
                         $anns['var'] = $type->getName();
                         $anns['isNullable'] = $type->allowsNull();
+                        $anns['isEnum'] = enum_exists($anns['var']);
                     }
                 }
                 $anns['readOnly'] = $property->isProtected();
