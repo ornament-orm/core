@@ -6,7 +6,7 @@ use stdClass;
 
 abstract class Decorator implements DecoratorInterface
 {
-    protected $_source;
+    protected mixed $_source;
 
     /**
      * Constructor. Pass in the original, mixed value.
@@ -14,7 +14,7 @@ abstract class Decorator implements DecoratorInterface
      * @param mixed $source;
      * @return void
      */
-    public function __construct($source)
+    public function __construct(mixed $source)
     {
         $this->_source = $source;
     }
