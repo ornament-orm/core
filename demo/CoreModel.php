@@ -8,8 +8,10 @@ class CoreModel
 {
     use Model;
 
-    protected $id = 1;
-    public $name = 'Marijn';
-    private $invisible = true;
+    protected int $id = 1;
+
+    public string $name = 'Marijn';
+
+    private bool $invisible = true;
 }
 
