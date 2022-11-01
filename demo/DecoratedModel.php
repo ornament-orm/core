@@ -2,21 +2,18 @@
 
 namespace Ornament\Demo;
 
-use Ornament\Core\Model;
+use Ornament\Core\{ Model, Getter };
 
 class DecoratedModel
 {
     use Model;
 
-    /**
-     * @var Ornament\Demo\SubtractOne
-     */
-    public $field;
+    public SubtractOne $field;
 
     /**
-     * @get virtual_property
      * @return string
      */
+    #[Getter("virtual_property")]
     protected function getVirtualPropertyDemo() : string
     {
         return $this->field;
