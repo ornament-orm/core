@@ -5,7 +5,7 @@ namespace Ornament\Core;
 use stdClass;
 use ReflectionProperty;
 
-abstract class Decorator implements DecoratorInterface
+abstract class Decorator
 {
     /**
      * Constructor. Receives the original, mixed value, and a ReflectionProperty
