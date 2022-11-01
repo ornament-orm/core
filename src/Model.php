@@ -272,11 +272,11 @@ trait Model
             $properties = $reflection->getProperties((ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED) & ~ReflectionProperty::IS_STATIC);
             $cache['properties'] = [];
             foreach ($properties as $property) {
-                $name = $property->getName();
                 $attributes = $property->getAttributes(NoDecoration::class);
                 if ($attributes) {
                     continue;
                 }
+                $name = $property->getName();
                 $anns = [];
                 if ($type = $property->getType()) {
                     $anns['var'] = $type->getName();
