@@ -116,13 +116,8 @@ trait Model
 
     /**
      * Overloaded getter. All public and protected properties on a model are
-     * exposed this way. Non-public properties are read-only.
-     *
-     * If a method was specified as `get` for this property, its return value
-     * is used instead. If the property has a `var` annotation _and_ it is an
-     * instance of `Ornament\Core\DecoratorInterface`, the corresponding
-     * decorator class is initialised with the property's current value and
-     * returned instead.
+     * exposed this way, unless explicitly marker with the NoDecoration
+     * attribute. Non-public properties are read-only.
      *
      * @param string $prop Name of the property.
      * @return mixed The property's value.
