@@ -3,24 +3,22 @@
 namespace Ornament\Core;
 
 use stdClass;
+use ReflectionProperty;
 
 abstract class Decorator implements DecoratorInterface
 {
-    protected mixed $_source;
-
     /**
-     * Constructor. Pass in the original, mixed value.
+     * Constructor. Receives the original, mixed value, and a ReflectionProperty
+     * of the property being decorated (for optional attributes).
      *
-     * @param mixed $source;
+     * @param mixed $_source;
+     * @param ReflectionProperty $_target;
      * @return void
      */
-    public function __construct(mixed $source)
-    {
-        $this->_source = $source;
-    }
+    public function __construct(protected mixed $_source, protected ReflectionProperty $_target) {}
 
     /**
-     * Get the original source, i.e. $model->$property.
+     * Get the original _source, i.e. $model->$property.
      *
      * @return mixed
      */
@@ -30,7 +28,7 @@ abstract class Decorator implements DecoratorInterface
     }
 
     /**
-     * __toString the source.
+     * __toString the _source.
      *
      * @return string
      */
