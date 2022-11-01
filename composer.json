@@ -17,7 +17,7 @@
         "toast/unit": "^2"
     },
     "suggest": {
-        "monolyth/formulaic": "PHP7 OO-forms with data binding for (Ornament) models"
+        "monolyth/formulaic": "PHP8 OO-forms with data binding for (Ornament) models"
     },
     "autoload": {
         "psr-4": {
