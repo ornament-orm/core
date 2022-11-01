@@ -37,7 +37,7 @@ Ornament is a _toolkit_, so it supplies a number of `Trait`s one can `use` and
 auxiliary decorator classes to extend your models' behaviour beyond the
 ordinary.
 
-The most basic implementation would look as follows (up to PHP 7.3):
+The most basic implementation would look as follows:
 
 ```php
 <?php
@@ -52,25 +52,19 @@ class MyModel
 
     /**
      * All protected properties on a model are considered read-only.
-     *
-     * @var int
      */
-    protected $id;
+    protected int $id;
 
     /**
      * Public properties are read/write. To auto-decorate during setting, use
      * the `Model::set()` method.
-     *
-     * @var string
      */
-    public $name;
+    public string $name;
 
     /**
      * Private properties are just that: private. They're left alone.
-     *
-     * @var string
      */
-    private $password;
+    private string $password;
 }
 
 // Assuming $source is a handle to a data source (in this case, a PDO
@@ -83,25 +77,8 @@ $model->name = 'Linus'; // Ok; public property.
 $model->id = 2; // Error: read-only property.
 ```
 
-As of PHP 7.4, Ornament fully supports type hinting properties instead of
-annotating them:
-
-```php
-<?php
-
-// ...
-class MyModel
-{
-    // ...
-
-    protected int $id;
-
-    // etc.
-}
-```
-
 PHP will take care of type coercion for builtins, while Ornament will handle
-more complex casing and decorating to you can also use classes as decorators
+more complex casing and decorating so you can also use classes as decorators
 (see below for more information).
 
 The above example didn't do much yet except exposing the protected `id` property
@@ -111,32 +88,8 @@ will throw an `Error` mimicking PHP's internal error.
 
 ## Annotating and decorating models
 Ornament doesn't get _really_ useful until you start _decorating_ your models.
-This is done (mostly) by specifying _annotations_ (or, as of PHP 7.4, type
-hinting for properties) on your properties and methods.
-
-Let's look at the simplest annotation possible: type coercion. Let's say we want
-to make sure that the `id` property from the previousl example is an integer:
-
-```php
-<?php
-
-class MyModel
-{
-    //...
-    /** @var int */
-    public $id;
-
-    // Or, as of PHP7.4:
-    public int $id;
-}
-
-//...
-$model->set('id', '1');
-echo $model->id; // (int)1
-```
-
-This works for all types supported by PHP's `settype` function. Type coercion is
-done automatically as of PHP 7.4; this is mainly useful for PHP 7.3.
+This is done (mostly) by specifying a type hint on a property with a class name
+that implements `Ornament\Core\DecoratorInterface`.
 
 ## Getters for virtual properties
 Ornament models support the concept of _virtual properties_ (which are, by
@@ -144,7 +97,7 @@ definition, read-only).
 
 An example of a virtual property would be a model with a `firstname` and
 `lastname` property, and a getter for `fullname`. To mark a method as a getter,
-attribute it with `#[\Ornament\Core\Getter("property"]`:
+attribute it with `#[\Ornament\Core\Getter("property")]`:
 
 ```php
 <?php
@@ -167,28 +120,44 @@ them a reasonably descriptive name for your own sanity (in the above example,
 `getFullname` would have been better).
 
 ## Decorator classes
-Ornament automatically transforms values according to typehints specified in
-your model's source code. Guess what: this also works for _classes_!
+As of version 0.16, Ornament supports three types of decorator classes: simple
+backed enums, classes that work by just receiving the value, and decorators
+implementing `Ornament\Core\DecoratorInterface`. Generally, your decorators will
+extend the `Ornament\Core\Decorator` base class, but you can also use something
+like `Carbon\Carbon`.
 
-An example where this could be useful is e.g. to automatically wrap a property
-containing a timezone in an instance of `Carbon\Carbon`.
+First, an example using an enum:
 
 ```php
 <?php
 
-use Carbon\Carbon;
+enum MyEnum : int
+{
+    case cool = 1;
+    case stuff = 2;
+}
 
 class MyModel
 {
     // ...
 
-    public Carbon $date;
+    public MyEnum $example;
 }
+
+// This now fails, since 3 is not in the enum:
+$model = MyModel::fromIterable(['example' => 3]);
 ```
 
-If the class you want to use does _not_ take the underlying value as its first
-(or only) parameter, you'll need to wrap it. You can extend
-`Ornament\Core\Decorator` for that.
+If an enum decorator is marked as nullable, Ornament will use `tryFrom` and the
+above example would have not thrown an error, but instead have set
+`$model->example` to `null`.
+
+The first argument passed to the constructor is the raw value. If the decorator
+extends Ornament's core Decorator class, the second argument is a
+`ReflectionProperty` of the property being decorated, which the custom decorator
+can use to extract attributes for configuration. Finally, you may add multiple
+`Ornament\Core\Construct` attributes specifying additional arguments. In the
+earlier example of Carbon, this could specify the time zone, for instance.
 
 It is recommended that a decorating class also supports a `__toString` method,
 so one can seamlessly pass decorated properties back to a storage engine.
@@ -213,8 +182,7 @@ return MyModel::fromIterable($stmt->fetch(PDO::FETCH_ASSOC));
 
 Versions of Ornament <0.14 did not have this limitation as they specifically
 worked with `fetchObject`; this is no longer possible on PHP 7.4 so we strongly
-recommend you upgrade to 0.15 or higher. It is compatible with both PHP 7.3 as
-well as 7.4 (and upwards).
+recommend you upgrade to 0.15 or higher.
 
 ## Custom object instantiation
 Ornament supplies a constructor that expects key/value pairs of data to inject
@@ -261,4 +229,12 @@ Having said that, you're not completely on your own. Models may use the
 All these methods are public. You can use them in your storage logic to
 determine how to proceed (e.g. skip an expensive `UPDATE` operation if the model
 `isPristine()` anyway).
+
+## Preventing properties from being decorated
+If your models are more than a "simple" data store, there might be properties on
+it you explicitly _don't_ want decorated. Note that any private or static
+property is already left alone.
+
+To explicitly tell Ornament to skip decoration for a public or protected
+property, add the attribute `Ornament\Core\NoDecoration` to it.
 
