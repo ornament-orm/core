@@ -221,23 +221,13 @@ trait Model
             throw new PropertyNotDefinedException(get_class($this), $field);
         }
         if (self::checkBaseType($cache['properties'][$field]['var'] ?? null)) {
-            // As of PHP 7.4, type coercion is implicit when properties have
-            // been correctly type hinted.
             if (!strlen($value ?? '') && $cache['properties'][$field]['isNullable'] ?? false) {
                 return null;
-            }
-            if ((float)phpversion() < 7.4) {
-                settype($value, $cache['properties'][$field]['var']);
             }
             return $value;
         } elseif (isset($cache['properties'][$field]['var'])) {
             if (!class_exists($cache['properties'][$field]['var'])) {
                 throw new DecoratorClassNotFoundException($cache['properties'][$field]['var']);
-            }
-            if (!$cache['properties'][$field]['isEnum']
-                && !array_key_exists(DecoratorInterface::class, class_implements($cache['properties'][$field]['var']))
-            ) {
-                throw new DecoratorClassMustImplementDecoratorInterfaceException($cache['properties'][$field]['var']);
             }
             if ($cache['properties'][$field]['isEnum']) {
                 $enum = $cache['properties'][$field]['var'];
@@ -247,7 +237,17 @@ trait Model
                     return $enum::from($value);
                 }
             } else {
-                return new $cache['properties'][$field]['var']($value);
+                $arguments = [$value];
+                $reflection = new ReflectionProperty($this, $field);
+                if (is_a($cache['properties'][$field]['var'], Decorator::class, true)) {
+                    $arguments[] = $reflection;
+                }
+                $attributes = $reflection->getAttributes(Construct::class);
+                foreach ($attributes as $attribute) {
+                    $attribute = $attribute->newInstance();
+                    $arguments[] = $attribute->getValue();
+                }
+                return new $cache['properties'][$field]['var'](...$arguments);
             }
         } else {
             return $value;
@@ -273,13 +273,15 @@ trait Model
             $cache['properties'] = [];
             foreach ($properties as $property) {
                 $name = $property->getName();
+                $attributes = $property->getAttributes(NoDecoration::class);
+                if ($attributes) {
+                    continue;
+                }
                 $anns = [];
-                if ((float)phpversion() >= 7.4) {
-                    if ($type = $property->getType()) {
-                        $anns['var'] = $type->getName();
-                        $anns['isNullable'] = $type->allowsNull();
-                        $anns['isEnum'] = enum_exists($anns['var']);
-                    }
+                if ($type = $property->getType()) {
+                    $anns['var'] = $type->getName();
+                    $anns['isNullable'] = $type->allowsNull();
+                    $anns['isEnum'] = enum_exists($anns['var']);
                 }
                 $anns['readOnly'] = $property->isProtected();
                 $cache['properties'][$name] = $anns;
