@@ -216,7 +216,7 @@ trait Model
             throw new PropertyNotDefinedException(get_class($this), $field);
         }
         if (self::checkBaseType($cache['properties'][$field]['var'] ?? null)) {
-            if (!strlen($value ?? '') && $cache['properties'][$field]['isNullable'] ?? false) {
+            if (is_scalar($value) && !strlen($value ?? '') && $cache['properties'][$field]['isNullable'] ?? false) {
                 return null;
             }
             return $value;
