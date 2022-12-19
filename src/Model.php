@@ -2,14 +2,8 @@
 
 namespace Ornament\Core;
 
-use ReflectionClass;
-use ReflectionProperty;
-use ReflectionException;
-use SplObjectStorage;
-use StdClass;
+use ReflectionClass, ReflectionObject, ReflectionProperty, ReflectionException;
 use Error;
-use Traversable;
-use UnitEnum;
 
 /**
  * `use` this trait to turn any vanilla class into an Ornament model.
