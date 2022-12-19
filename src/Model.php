@@ -2,7 +2,6 @@
 
 namespace Ornament\Core;
 
-use zpt\anno\Annotations;
 use ReflectionClass;
 use ReflectionProperty;
 use ReflectionException;
@@ -10,6 +9,7 @@ use SplObjectStorage;
 use StdClass;
 use Error;
 use Traversable;
+use UnitEnum;
 
 /**
  * `use` this trait to turn any vanilla class into an Ornament model.
@@ -36,9 +36,10 @@ trait Model
      */
     public function __construct(iterable $input = null)
     {
-        if (isset($input)) {
-            foreach ($input as $key => $value) {
-                $this->$key = $this->ornamentalize($key, $value);
+        $cache = $this->__getModelPropertyDecorations();
+        foreach ($cache['properties'] as $field => $annotations) {
+            if (isset($this->$field) || isset($input[$field])) {
+                $this->$field = $this->ornamentalize($field, $input[$field] ?? $this->$field);
             }
         }
         $this->__initial = clone $this;
@@ -115,13 +116,8 @@ trait Model
 
     /**
      * Overloaded getter. All public and protected properties on a model are
-     * exposed this way. Non-public properties are read-only.
-     *
-     * If a method was specified as `@get` for this property, its return value
-     * is used instead. If the property has a `@var` annotation _and_ it is an
-     * instance of `Ornament\Core\DecoratorInterface`, the corresponding
-     * decorator class is initialised with the property's current value and
-     * returned instead.
+     * exposed this way, unless explicitly marker with the NoDecoration
+     * attribute. Non-public properties are read-only.
      *
      * @param string $prop Name of the property.
      * @return mixed The property's value.
@@ -129,13 +125,13 @@ trait Model
      */
     public function __get(string $prop)
     {
+        $cache = $this->__getModelPropertyDecorations();
+        if (isset($cache['methods'][$prop])) {
+            return $this->{$cache['methods'][$prop]}();
+        }
         try {
             $reflection = new ReflectionProperty($this, $prop);
         } catch (ReflectionException $e) {
-            $cache = $this->__getModelPropertyDecorations();
-            if (isset($cache['methods'][$prop])) {
-                return $this->{$cache['methods'][$prop]}();
-            }
             throw new Error("Tried to get non-existing property $prop on ".get_class($this));
         }
         if (($reflection->isPublic() || $reflection->isProtected()) && !$reflection->isStatic()) {
@@ -143,19 +139,6 @@ trait Model
         } else {
             throw new Error("Tried to get private or abstract property $prop on ".get_class($this));
         }
-    }
-
-    /**
-     * Overloaded setter.
-     *
-     * @param string $prop
-     * @param mixed $value
-     * @return mixed
-     */
-    public function __set(string $prop, $value)
-    {
-        $this->set($prop, $value);
-        return $this->$prop;
     }
     
     /**
@@ -167,6 +150,10 @@ trait Model
      */
     public function __isset(string $prop) : bool
     {
+        $cache = $this->__getModelPropertyDecorations();
+        if (isset($cache['methods'][$prop])) {
+            return true;
+        }
         try {
             $reflection = new ReflectionProperty($this, $prop);
         } catch (ReflectionException $e) {
@@ -222,27 +209,43 @@ trait Model
      * @param mixed $value
      * @return mixed
      */
-    protected function ornamentalize(string $field, $value)
+    protected function ornamentalize(string $field, mixed $value) : mixed
     {
         $cache = $this->__getModelPropertyDecorations();
         if (!isset($cache['properties'][$field])) {
             throw new PropertyNotDefinedException(get_class($this), $field);
         }
-        if (self::checkBaseType($cache['properties'][$field]['var'])) {
-            // As of PHP 7.4, type coercion is implicit when properties have
-            // been correctly type hinted.
-            if ((float)phpversion() < 7.4) {
-                settype($value, $cache['properties'][$field]['var']);
+        if (self::checkBaseType($cache['properties'][$field]['var'] ?? null)) {
+            if (is_scalar($value) && !strlen($value ?? '') && $cache['properties'][$field]['isNullable'] ?? false) {
+                return null;
             }
             return $value;
         } elseif (isset($cache['properties'][$field]['var'])) {
             if (!class_exists($cache['properties'][$field]['var'])) {
                 throw new DecoratorClassNotFoundException($cache['properties'][$field]['var']);
             }
-            if (!array_key_exists('Ornament\Core\DecoratorInterface', class_implements($cache['properties'][$field]['var']))) {
-                throw new DecoratorClassMustImplementDecoratorInterfaceException($cache['properties'][$field]['var']);
+            if ($cache['properties'][$field]['isEnum']) {
+                $enum = $cache['properties'][$field]['var'];
+                if ($cache['properties'][$field]['isNullable']) {
+                    return $enum::tryFrom($value);
+                } else {
+                    return $enum::from($value);
+                }
+            } else {
+                $arguments = [$value];
+                $reflection = new ReflectionProperty($this, $field);
+                if (is_a($cache['properties'][$field]['var'], Decorator::class, true)) {
+                    $arguments[] = $reflection;
+                }
+                $attributes = $reflection->getAttributes(Construct::class);
+                foreach ($attributes as $attribute) {
+                    $attribute = $attribute->newInstance();
+                    $arguments[] = $attribute->getValue();
+                }
+                return new $cache['properties'][$field]['var'](...$arguments);
             }
-            return new $cache['properties'][$field]['var']($value);
+        } else {
+            return $value;
         }
     }
 
@@ -251,23 +254,29 @@ trait Model
         static $cache = [];
         if (!$cache) {
             $reflection = new ReflectionClass($this);
-            $cache['class'] = new Annotations($reflection);
+            $cache['class'] = $reflection->getAttributes();
             $cache['methods'] = [];
             foreach ($reflection->getMethods() as $method) {
-                $anns = new Annotations($method);
-                if (isset($anns['get'])) {
-                    $cache['methods'][$anns['get']] = $method->getName();
+                $attributes = $method->getAttributes(Getter::class);
+                if ($attributes) {
+                    foreach ($attributes as $attribute) {
+                        $cache['methods'][$attribute->newInstance()->property] = $method->getName();
+                    }
                 }
             }
             $properties = $reflection->getProperties((ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED) & ~ReflectionProperty::IS_STATIC);
             $cache['properties'] = [];
             foreach ($properties as $property) {
+                $attributes = $property->getAttributes(NoDecoration::class);
+                if ($attributes) {
+                    continue;
+                }
                 $name = $property->getName();
-                $anns = new Annotations($property);
-                if ((float)phpversion() >= 7.4) {
-                    if ($type = $property->getType()) {
-                        $anns['var'] = $type->getName();
-                    }
+                $anns = [];
+                if ($type = $property->getType()) {
+                    $anns['var'] = $type->getName();
+                    $anns['isNullable'] = $type->allowsNull();
+                    $anns['isEnum'] = enum_exists($anns['var']);
                 }
                 $anns['readOnly'] = $property->isProtected();
                 $cache['properties'][$name] = $anns;
