@@ -166,26 +166,54 @@ trait Model
     }
 
     /**
-     * You'll want to specify a custom implementation for this. For models in an
-     * array (on another model, of course) it is called with the current index.
-     * Obviously, overriding is only needed if the index is relevant.
+     * Get the persistable data for this model.
      *
-     * @param integer $index The current index in the array.
-     * @return void
+     * On rare occasions, properties may be non-public but still eligible for
+     * (re)saving. A good example of this would be a password, which you want to
+     * store encrypted, but set unencrypted via a method (so the encryption is
+     * enforced). Basically the same goes for anything confidential that needs
+     * mangling (e.g. credit card number) or other special treatment (image data
+     * passed a binary but stored base64-encoded).
+     *
+     * @param array $extraProperties Array of non-public properties to store
+     *  regardless.
+     * @return array
      */
-    public function __index(int $index) : void
-    {
-    }
-
-    public function getPersistableData() : array
+    public function getPersistableData(array $extraProperties = []) : array
     {
         $data = [];
-        foreach ($this->__getModelPropertyDecorations()['properties'] as $name => $anns) {
-            if (!$anns['readOnly']) {
-                $data[$name] = $this->$name ?? null;
-            }
+        $reflection = new ReflectionObject($this);
+        foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC) as $property) {
+            $data[$property->name] === $this->{$property->name} ?? null;
+        }
+        foreach ($extraProperties as $property) {
+            $data[$property] = $this->$property ?? null;
         }
         return $data;
+    }
+
+    /**
+     * Copy the identity of $model. After this, $this behaves like it was always
+     * $model. This comes in useful when e.g. you'd like to update your model
+     * after storing (that backend might change further fields).
+     *
+     * @param object $model. Must be exactly the same class as $this.
+     * @return void
+     * @throws TypeError if the types don't match exactly.
+     */
+    public function copyIdentity(object $model) : void
+    {
+        if (get_class($model) !== get_class($this)) {
+            throw new TypeError(sprintf(
+                "Model of type %s passed to copyIdentity to model of type %s",
+                get_class($model),
+                get_class($this)
+            ));
+        }
+        foreach ($model as $property => $value) {
+            $this->$property = $value;
+        }
+        $this->__initial = $model;
     }
 
     /**
