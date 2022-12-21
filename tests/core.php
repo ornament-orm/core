@@ -9,7 +9,7 @@ use Gentry\Gentry\Wrapper;
 return function () : Generator {
     /** Core models should have only the basic functionality: expose properties via magic getters and setters but not private ones. */
     yield function () : void {
-        $model = Wrapper::createObject(CoreModel::class);
+        $model = new Wrapper(new CoreModel);
         assert(isset($model->id));
         assert($model->id == 1);
         assert(!isset($model->invisible));
@@ -17,7 +17,7 @@ return function () : Generator {
 
     /** Models can successfully register and apply decorations. */
     yield function () : void {
-        $model = Wrapper::createObject(DecoratedModel::class);
+        $model = new Wrapper(new DecoratedModel);
         $model->set('field', 2);
         assert((int)"{$model->field}" === 1);
         assert($model->virtual_property === "1");
@@ -25,7 +25,7 @@ return function () : Generator {
 
     /** If we try to access a private property, an Error is thrown. */
     yield function () : void {
-        $model = Wrapper::createObject(CoreModel::class);
+        $model = new Wrapper(new CoreModel);
         $e = null;
         try {
             $foo = $model->invisible;
@@ -36,7 +36,7 @@ return function () : Generator {
 
     /** If we try to modify a protected property, an Error is thrown. */
     yield function () : void {
-        $model = Wrapper::createObject(CoreModel::class);
+        $model = new Wrapper(new CoreModel);
         $e = null;
         try {
             $model->id = 2;
