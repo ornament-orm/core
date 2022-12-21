@@ -9,16 +9,16 @@
     "packages-dev": [
         {
             "name": "gentry/gentry",
-            "version": "0.16.8",
+            "version": "0.16.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/gentry-php/gentry.git",
-                "reference": "36578c568672b76d82e9048af874cc4954efebb3"
+                "reference": "8d303e02206084dbc237dec4b7fdf61f8879007b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/gentry-php/gentry/zipball/36578c568672b76d82e9048af874cc4954efebb3",
-                "reference": "36578c568672b76d82e9048af874cc4954efebb3",
+                "url": "https://api.github.com/repos/gentry-php/gentry/zipball/8d303e02206084dbc237dec4b7fdf61f8879007b",
+                "reference": "8d303e02206084dbc237dec4b7fdf61f8879007b",
                 "shasum": ""
             },
             "require": {
@@ -54,9 +54,9 @@
             "description": "PHP unit test generation tools",
             "support": {
                 "issues": "https://github.com/gentry-php/gentry/issues",
-                "source": "https://github.com/gentry-php/gentry/tree/0.16.8"
+                "source": "https://github.com/gentry-php/gentry/tree/0.16.9"
             },
-            "time": "2022-12-12T15:37:15+00:00"
+            "time": "2022-12-21T12:19:13+00:00"
         },
         {
             "name": "monolyth/cliff",
