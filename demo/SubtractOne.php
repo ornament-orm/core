@@ -8,7 +8,7 @@ class SubtractOne extends Decorator
 {
     public function getSource() : int
     {
-        return (int)$this->_source - 1;
+        return $this->_source - 1;
     }
 }
 
