@@ -14,9 +14,9 @@ class DecoratedModel
      * @return string
      */
     #[Getter("virtual_property")]
-    protected function getVirtualPropertyDemo() : string
+    protected function getVirtualPropertyDemo() :? string
     {
-        return $this->field;
+        return (string)($this->field ?? '');
     }
 }
 
