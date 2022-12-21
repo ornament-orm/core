@@ -178,7 +178,7 @@ trait Model
         $data = [];
         $reflection = new ReflectionObject($this);
         foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC) as $property) {
-            $data[$property->name] === $this->{$property->name} ?? null;
+            $data[$property->name] = $this->{$property->name} ?? null;
         }
         foreach ($extraProperties as $property) {
             $data[$property] = $this->$property ?? null;
