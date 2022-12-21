@@ -2,7 +2,7 @@
 
 namespace Ornament\Core;
 
-use StdClass;
+use ReflectionObject, ReflectionProperty;
 
 trait State
 {
@@ -13,11 +13,14 @@ trait State
      */
     public function isDirty() : bool
     {
-        foreach ($this->__initial as $prop => $val) {
-            if ($prop == '__initial') {
+        $reflection = new ReflectionObject($this);
+        foreach ($reflection->getProperties(
+            ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED & ~ReflectionProperty::IS_STATIC
+        ) as $property) {
+            if ($property->name == '__initial') {
                 continue;
             }
-            if ($this->isModified($prop)) {
+            if ($this->isModified($property->name)) {
                 return true;
             }
         }
@@ -42,7 +45,7 @@ trait State
      */
     public function isModified(string $property) : bool
     {
-        return $this->__initial?->$property ?? null !== $this->$property ?? null;
+        return ($this->__initial?->$property ?? null) !== ($this->$property ?? null);
     }
 
     /**
