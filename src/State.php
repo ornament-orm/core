@@ -42,7 +42,7 @@ trait State
      */
     public function isModified(string $property) : bool
     {
-        return $this->__initial->$property !== $this->$property;
+        return $this->__initial?->$property ?? null !== $this->$property ?? null;
     }
 
     /**
