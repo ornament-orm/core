@@ -1,0 +1,15 @@
+site_name: Ornament/Core
+site_url: http://ornament.monomelodies.nl/core/docs/
+repo_url: https://github.com/ornament-orm/core
+
+nav:
+- Home:
+    - 'General documentation': 'index.md'
+- Plugins:
+    - 'Conditionals': 'conditionals.md'
+    - 'Data': 'data.md'
+    - 'Force named indexes': 'force-named-indexes.md'
+    - 'Indexes and constraints': 'indexes-and-constraints.md'
+    - 'Functions and procedures': 'procedures.md'
+    - 'Tables': 'tables.md'
+    - 'Views': 'views.md'
