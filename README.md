@@ -14,12 +14,20 @@ language-specific data.)
 Also, the use of extensive and/or complicated config files sucks. (XML? This
 is 2023, people!)
 
-Ornament's design goals are:
+We believe Object _Resource_ Mapping should be about seamlessly transforming
+your data into something your code can handle, and vice versa. Thus, Ornament's
+design goals are:
 
 - make it super-simple to use vanilla PHP classes as models;
 - promote the use of models as "dumb" data containers;
 - encourage offloading of storage logic to helper classes ("repositories");
 - make models extensible via an easy plugin mechanism.
+
+If that doesn't make sense yet: imagine a model class `Foo` with a property
+`bar` or the type `Bar`. For every `Foo` class instantiated from some data
+source, you'd need boilerplate code to conver `bar` to a `Bar`. For many models
+with many properties, this obviously gets tiresome. Let's get rid of _that_
+aspect of ORM and just automate it!
 
 ## Installation
 ```sh
@@ -27,6 +35,12 @@ $ composer require ornament/core
 ```
 
 You'll likely also want auxiliary packages from the `ornament/*` family.
+
+### Manual installation ###
+
+Yadiyadi, `git clone` or whatever and add the path for the `Ornament\Core`
+namespace to your `psr-4` autoload config. But really, don't do that unless
+you're masochistic.
 
 ## Basic usage
 Ornament models (or "entities" if you're used to Doctrine-speak) are really
@@ -47,23 +61,17 @@ use Ornament\Core\Model;
 class MyModel
 {
     // The generic Model trait that bootstraps this class as an Ornament model;
-    // it contains core functionality.
+    // it contains all core functionality.
     use Model;
 
-    /**
-     * All protected properties on a model are considered read-only.
-     */
+    // All protected properties on a model are considered read-only.
     protected int $id;
 
-    /**
-     * Public properties are read/write. To auto-decorate during setting, use
-     * the `Model::set()` method.
-     */
+    // Public properties are read/write. To auto-decorate during setting, use
+    // the `Model::set()` method.
     public string $name;
 
-    /**
-     * Private properties are just that: private. They're left alone.
-     */
+    // Private properties are just that: private. They're left alone.
     private string $password;
 }
 
@@ -78,7 +86,7 @@ $model->id = 2; // Error: read-only property.
 ```
 
 PHP will take care of type coercion for builtins, while Ornament will handle
-more complex casing and decorating so you can also use classes as decorators
+more complex casting and decorating so you can also use classes as decorators
 (see below for more information).
 
 The above example didn't do much yet except exposing the protected `id` property
