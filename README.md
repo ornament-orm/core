@@ -1,5 +1,5 @@
 # Ornament
-PHP7 ORM toolkit, core package
+PHP8 ORM toolkit, core package
 
 ORM is a fickle beast. Many libraries (e.g. Propel, Doctrine, Eloquent etc)
 assume your database should correspond to your models. This is simply not the
