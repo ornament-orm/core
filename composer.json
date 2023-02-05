@@ -1,6 +1,6 @@
 {
     "name": "ornament/core",
-    "description": "PHP7 ORM toolkit, core package",
+    "description": "PHP8 ORM toolkit, core package",
     "license": "MIT",
     "keywords": ["php","orm"],
     "authors": [
