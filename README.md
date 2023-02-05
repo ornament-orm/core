@@ -12,7 +12,7 @@ where the data might be stored in a `page` table and a `page_i18n` table for the
 language-specific data.)
 
 Also, the use of extensive and/or complicated config files sucks. (XML? This
-is 2020, people!)
+is 2023, people!)
 
 Ornament's design goals are:
 
