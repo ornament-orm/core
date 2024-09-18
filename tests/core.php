@@ -7,12 +7,17 @@ use Gentry\Gentry\Wrapper;
  * Tests for core Ornament functionality.
  */
 return function () : Generator {
-    /** Core models should have only the basic functionality: expose properties via magic getters and setters but not private ones. */
+    /** Core models should have only the basic functionality: expose properties via magic getters and setters */
     yield function () : void {
-        $model = new Wrapper(new CoreModel, null, ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC);
+        $model = new Wrapper(
+            CoreModel::fromIterable(['id' => 1]),
+            null,
+            ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC
+        );
         assert(isset($model->id));
         assert($model->id === 1);
-        assert(!isset($model->invisible));
+        assert(!isset($model->invisible1));
+        assert(!isset($model->invisible2));
     };
 
     /** Models can successfully register and apply decorations. */
@@ -34,7 +39,7 @@ return function () : Generator {
         assert($e instanceof Error);
     };
 
-    /** If we try to modify a protected property, an Error is thrown. */
+    /** If we try to modify a readonly property, an Error is thrown. */
     yield function () : void {
         $model = new Wrapper(new CoreModel, null, ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC);
         $e = null;
