@@ -8,7 +8,7 @@ class CoreModel
 {
     use Model;
 
-    protected int $id = 1;
+    public readonly int $id;
 
     public string $name = 'Marijn';
 
