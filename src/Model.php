@@ -128,7 +128,7 @@ trait Model
         } catch (ReflectionException $e) {
             throw new Error("Tried to get non-existing property $prop on ".get_class($this));
         }
-        if (($reflection->isPublic() || $reflection->isProtected()) && !$reflection->isStatic()) {
+        if ($reflection->isPublic() && !$reflection->isStatic()) {
             return $this->$prop;
         } else {
             throw new Error("Tried to get private or abstract property $prop on ".get_class($this));
@@ -153,7 +153,7 @@ trait Model
         } catch (ReflectionException $e) {
             return false;
         }
-        if ($reflection->isPublic() || $reflection->isProtected()) {
+        if ($reflection->isPublic()) {
             return isset($this->$prop);
         }
         return false;
@@ -300,7 +300,7 @@ trait Model
                     $anns['isNullable'] = $type->allowsNull();
                     $anns['isEnum'] = enum_exists($anns['var']);
                 }
-                $anns['readOnly'] = $property->isProtected();
+                $anns['readOnly'] = $property->isReadOnly();
                 $cache['properties'][$name] = $anns;
             }
         }
