@@ -9,7 +9,7 @@ use Gentry\Gentry\Wrapper;
 return function () : Generator {
     /** Core models should have only the basic functionality: expose properties via magic getters and setters but not private ones. */
     yield function () : void {
-        $model = new Wrapper(new CoreModel, null, ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED & ~ReflectionProperty::IS_STATIC);
+        $model = new Wrapper(new CoreModel, null, ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC);
         assert(isset($model->id));
         assert($model->id === 1);
         assert(!isset($model->invisible));
@@ -17,7 +17,7 @@ return function () : Generator {
 
     /** Models can successfully register and apply decorations. */
     yield function () : void {
-        $model = new Wrapper(new DecoratedModel, null, ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED & ~ReflectionProperty::IS_STATIC);
+        $model = new Wrapper(new DecoratedModel, null, ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC);
         $model->set('field', 2);
         assert((int)"{$model->field}" === 1);
         assert($model->virtual_property === "1");
@@ -25,7 +25,7 @@ return function () : Generator {
 
     /** If we try to access a private property, an Error is thrown. */
     yield function () : void {
-        $model = new Wrapper(new CoreModel, null, ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED & ~ReflectionProperty::IS_STATIC);
+        $model = new Wrapper(new CoreModel, null, ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC);
         $e = null;
         try {
             $foo = $model->invisible;
@@ -36,7 +36,7 @@ return function () : Generator {
 
     /** If we try to modify a protected property, an Error is thrown. */
     yield function () : void {
-        $model = new Wrapper(new CoreModel, null, ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED & ~ReflectionProperty::IS_STATIC);
+        $model = new Wrapper(new CoreModel, null, ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC);
         $e = null;
         try {
             $model->id = 2;
