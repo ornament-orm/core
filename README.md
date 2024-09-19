@@ -1,48 +1,57 @@
 # Ornament
-PHP8 ORM toolkit, core package
+PHP8 object decorator toolkit, core package
 
-ORM is a fickle beast. Many libraries (e.g. Propel, Doctrine, Eloquent etc)
-assume your database should correspond to your models. This is simply not the
-case; models contain business logic and may, may not or may in part refer to
-database tables, NoSQL databases, flat files, an external API or whatever (the
-"R" in ORM should really stand for "resource", not "relational"). The point is:
-the models shouldn't care, and there should be no "conventional" mapping through
-their names. (A common example would be a model of pages in multiple languages,
-where the data might be stored in a `page` table and a `page_i18n` table for the
-language-specific data.)
+When translating data from any storage source to your PHP models, you'll often
+want to _augment_ it. For example, a date from a database is simply a string,
+but maybe you prefer it as a `DateTime` object, or a `Carbon` instance.
 
-Also, the use of extensive and/or complicated config files sucks. (XML? This
-is 2023, people!)
-
-We believe Object _Resource_ Mapping should be about seamlessly transforming
-your data into something your code can handle, and vice versa. Thus, Ornament's
-design goals are:
-
-- make it super-simple to use vanilla PHP classes as models;
-- promote the use of models as "dumb" data containers;
-- encourage offloading of storage logic to helper classes ("repositories");
-- make models extensible via an easy plugin mechanism.
-
-If that doesn't make sense yet: imagine a model class `Foo` with a property
-`bar` or the type `Bar`. For every `Foo` class instantiated from some data
-source, you'd need boilerplate code to conver `bar` to a `Bar`. For many models
-with many properties, this obviously gets tiresome. Let's get rid of _that_
-aspect of ORM and just automate it!
+Ornament's aim is to simplify tons of boilerplate code to facilitate this.
 
 ## Installation
 ```sh
 $ composer require ornament/core
 ```
 
-You'll likely also want auxiliary packages from the `ornament/*` family.
+You'll likely also want auxiliary packages from the `ornament/*` family. These
+contain predefined types you can use, e.g. the `Bitflag\Property` allowing you
+to stuff multiple `true/false` values in a single integer.
 
 ### Manual installation ###
-
 Yadiyadi, `git clone` or whatever and add the path for the `Ornament\Core`
 namespace to your `psr-4` autoload config. But really, don't do that unless
 you're masochistic.
 
 ## Basic usage
+Ornament models are nothing more than vanilla PHP classes; there is no need to
+extend any master or god class of sorts (you might want to do that in your own
+framework of choice).
+
+At the very least, you'll want to `use` the `Ornament\Core\Model` trait:
+
+```
+<?php
+
+use Ornament\Core\Model;
+
+class FooModel
+{
+    use Model;
+
+    public readonly DateTime $datecreated;
+}
+```
+
+Here, we indicated (via type-hinting) that the `datecreated` propery should
+actually contain a `DateTime` object. It is also readonly, since the creation
+date is not very likely to ever change.
+
+Ornament defines a default constructor which assumes one argument: a hash of
+    key/value pairs for your model's properties.
+
+
+
+To correctly initialze an instance of this `FooModel`, we do not simply contruct
+it. This would imply assumptions about your own particular constructor.
 Ornament models (or "entities" if you're used to Doctrine-speak) are really
 nothing more than vanilla PHP classes; there is no need to extend any base
 object of sorts (since you might want to do that in your own framework).
