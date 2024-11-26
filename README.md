@@ -28,7 +28,7 @@ framework of choice).
 
 At the very least, you'll want to `use` the `Ornament\Core\Model` trait:
 
-```
+```php
 <?php
 
 use Ornament\Core\Model;
@@ -46,67 +46,63 @@ actually contain a `DateTime` object. It is also readonly, since the creation
 date is not very likely to ever change.
 
 Ornament defines a default constructor which assumes one argument: a hash of
-    key/value pairs for your model's properties.
+key/value pairs for your model's properties.
 
-
-
-To correctly initialze an instance of this `FooModel`, we do not simply contruct
-it. This would imply assumptions about your own particular constructor.
-Ornament models (or "entities" if you're used to Doctrine-speak) are really
-nothing more than vanilla PHP classes; there is no need to extend any base
-object of sorts (since you might want to do that in your own framework).
-
-Ornament is a _toolkit_, so it supplies a number of `Trait`s one can `use` and
-auxiliary decorator classes to extend your models' behaviour beyond the
-ordinary.
-
-The most basic implementation would look as follows:
+Decorated properties assume the decorating class accepts the _value_ as its
+first constructor argument. Additional arguments may be specified by annotating
+the property with one or more `Ornament\Core\Construct` attributes. The
+attribute's constructor argument is the actual additional value that should be
+passed. For instance, to specify a specific time zone for the `DateTime`
+property, one would write:
 
 ```php
 <?php
 
-use Ornament\Core\Model;
+use Ornament\Core\Model, Construct;
+
+class FooModel
+{
+    use Model;
+
+    #[Construct(new DateTimeZone('Europe/Amsterdam'))]
+    public readonly DateTime $datecreated;
+}
+```
+
+Lastly, Ornament defines a `Decorator` class that custom decorators may extend.
+The difference from a "vanilla" decorator is that extensions of the `Decorator`
+come with some utility methods, and receive by default a _second_ constructor
+argument: a `ReflectionProperty` of the original target field (so your custom
+decorator can also refer to any attributes your project may have defined for
+that specific property - or whatever other black magic you need to do).
+
+## Types
+Properties specifying one of the basic, built-in types (e.g. `int` or `string`)
+will have their values coerced to the correct type.
+
+## Enums
+Properties may also be type-hinted as a backed enum:
+
+```php
+<?php
+
+enum MyEnum
+{
+    case foo = 1;
+    case bar = 2;
+}
 
 class MyModel
 {
-    // The generic Model trait that bootstraps this class as an Ornament model;
-    // it contains all core functionality.
-    use Model;
-
-    // All protected properties on a model are considered read-only.
-    protected int $id;
-
-    // Public properties are read/write. To auto-decorate during setting, use
-    // the `Model::set()` method.
-    public string $name;
-
-    // Private properties are just that: private. They're left alone.
-    private string $password;
+    public MyEnum $baz;
 }
 
-// Assuming $source is a handle to a data source (in this case, a PDO
-// statement):
-$model = MyModel::fromIterable($source->fetch(PDO::FETCH_ASSOC));
-echo $model->id; // 1
-echo $model->name; // Marijn
-echo $model->password; // Error: private property.
-$model->name = 'Linus'; // Ok; public property.
-$model->id = 2; // Error: read-only property.
+// Fails: 3 is not in the enum!
+$model = new MyModel(['baz' => 3]);
 ```
 
-PHP will take care of type coercion for builtins, while Ornament will handle
-more complex casting and decorating so you can also use classes as decorators
-(see below for more information).
-
-The above example didn't do much yet except exposing the protected `id` property
-as read-only. Note however that Ornament models also prevent mutating undefined
-properties; trying to set anything not explicitly set in the class definition
-will throw an `Error` mimicking PHP's internal error.
-
-## Annotating and decorating models
-Ornament doesn't get _really_ useful until you start _decorating_ your models.
-This is done (mostly) by specifying a type hint on a property with a class name
-that implements `Ornament\Core\DecoratorInterface`.
+If the enum property is _nullable_, an invalid value will not throw an error,
+but cause `null` to be set instead.
 
 ## Getters for virtual properties
 Ornament models support the concept of _virtual properties_ (which are, by
@@ -114,7 +110,7 @@ definition, read-only).
 
 An example of a virtual property would be a model with a `firstname` and
 `lastname` property, and a getter for `fullname`. To mark a method as a getter,
-attribute it with `#[\Ornament\Core\Getter("property")]`:
+attribute it with `#[\Ornament\Core\Getter("propertyName")]`:
 
 ```php
 <?php
@@ -136,53 +132,37 @@ to mark them as `protected` so they cannot be called from outside, and to give
 them a reasonably descriptive name for your own sanity (in the above example,
 `getFullname` would have been better).
 
-## Decorator classes
-As of version 0.16, Ornament supports three types of decorator classes: simple
-backed enums, classes that work by just receiving the value, and decorators
-implementing `Ornament\Core\DecoratorInterface`. Generally, your decorators will
-extend the `Ornament\Core\Decorator` base class, but you can also use something
-like `Carbon\Carbon`.
-
-First, an example using an enum:
-
-```php
-<?php
-
-enum MyEnum : int
-{
-    case cool = 1;
-    case stuff = 2;
-}
-
-class MyModel
-{
-    // ...
-
-    public MyEnum $example;
-}
-
-// This now fails, since 3 is not in the enum:
-$model = MyModel::fromIterable(['example' => 3]);
-```
-
-If an enum decorator is marked as nullable, Ornament will use `tryFrom` and the
-above example would have not thrown an error, but instead have set
-`$model->example` to `null`.
-
-The first argument passed to the constructor is the raw value. If the decorator
-extends Ornament's core Decorator class, the second argument is a
-`ReflectionProperty` of the property being decorated, which the custom decorator
-can use to extract attributes for configuration. Finally, you may add multiple
-`Ornament\Core\Construct` attributes specifying additional arguments. In the
-earlier example of Carbon, this could specify the time zone, for instance.
-
-It is recommended that a decorating class also supports a `__toString` method,
-so one can seamlessly pass decorated properties back to a storage engine.
 
 ## PHP, PDO and `fetchObject`
 PDO's `fetchObject` and related methods try to be clever by injecting
 properties based on fetched database columns _before_ the constructor is called.
-PHP 7.4 doesn't like that, since a decorated property will be of the wrong type!
+Hence, do not use `PDO::FETCH_OBJECT`; instead, use `PDO::FETCH_ASSOC`.
+
+## `FromIterable` trait
+Models may `use` the `Ornament\Core\FromIterable` trait for simple
+instantiation, also in callbacks:
+
+```php
+<?php
+
+use Ornament\Core;
+
+class MyModel
+{
+    use Core\Model;
+    use Core\FromIterable;
+
+    // properties...
+}
+
+$model = MyModel::fromIterable($singleRowFromDatabase);
+$models = MyModel::fromIterableCollection($multipleRowsFromDatabase);
+```
+
+In the above example, the single model is equivalent to
+`new MyModel($singleRowFromDatabase)`, and as such doesn't add much.
+PHP 7.4 or higher doesn't like that, since a decorated property will be of the
+wrong type!
 
 For this reason, it's now considered best practice to use `PDO::FETCH_ASSOC` and
 feeding the result through either `Model::fromIterable` (for `fetch`) or
@@ -198,7 +178,7 @@ return MyModel::fromIterable($stmt->fetch(PDO::FETCH_ASSOC));
 ```
 
 Versions of Ornament <0.14 did not have this limitation as they specifically
-worked with `fetchObject`; this is no longer possible on PHP 7.4 so we strongly
+worked with `fetchObject`; this is no longer possible on PHP 7.4+ so we strongly
 recommend you upgrade to 0.15 or higher.
 
 ## Custom object instantiation
