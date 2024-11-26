@@ -30,10 +30,12 @@ trait Model
      */
     public function __construct(iterable $input = null)
     {
-        $cache = $this->__getModelPropertyDecorations();
-        foreach ($cache['properties'] as $field => $annotations) {
-            if (isset($this->$field) || isset($input[$field])) {
-                $this->$field = $this->ornamentalize($field, $input[$field] ?? $this->$field);
+        if (isset($input)) {
+            $cache = $this->__getModelPropertyDecorations();
+            foreach ($cache['properties'] as $field => $annotations) {
+                if (array_key_exists($field, $input)) {
+                    $this->$field = $this->ornamentalize($field, $input[$field]);
+                }
             }
         }
         $this->__initial = clone $this;
@@ -184,30 +186,6 @@ trait Model
             $data[$property] = $this->$property ?? null;
         }
         return $data;
-    }
-
-    /**
-     * Copy the identity of $model. After this, $this behaves like it was always
-     * $model. This comes in useful when e.g. you'd like to update your model
-     * after storing (that backend might change further fields).
-     *
-     * @param object $model. Must be exactly the same class as $this.
-     * @return void
-     * @throws TypeError if the types don't match exactly.
-     */
-    public function copyIdentity(object $model) : void
-    {
-        if (get_class($model) !== get_class($this)) {
-            throw new TypeError(sprintf(
-                "Model of type %s passed to copyIdentity to model of type %s",
-                get_class($model),
-                get_class($this)
-            ));
-        }
-        foreach ($model as $property => $value) {
-            $this->$property = $value;
-        }
-        $this->__initial = $model;
     }
 
     /**
