@@ -42,34 +42,6 @@ trait Model
     }
 
     /**
-     * Generate an instance from an iterable. This is similar to simply
-     * constructing an instance, but is handy to use in callbacks etc.
-     *
-     * @param iterable $data
-     * @return object Instance of whatever class uses this trait
-     */
-    public static function fromIterable(iterable $data) : object
-    {
-        self::initTransformer();
-        return call_user_func(self::$arrayToModelTransformer, $data);
-    }
-
-    /**
-     * Like `fromIterable`, only this accepts a _collection_ of iterable
-     * inputs. Use with e.g. `PDO::fetchAll()`.
-     *
-     * @param iterable $data
-     * @return array
-     */
-    public static function fromIterableCollection(iterable $collection) : iterable
-    {
-        array_walk($collection, function (iterable &$item) : void {
-            $item = self::fromIterable($item);
-        });
-        return $collection;
-    }
-
-    /**
      * Initialize the iterable-to-model transformer for this class. The default
      * is to pass a hash of key/value pairs to the constructor.
      *
@@ -179,7 +151,11 @@ trait Model
     {
         $data = [];
         $reflection = new ReflectionObject($this);
-        foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC) as $property) {
+        foreach ($reflection->getProperties(
+            ReflectionProperty::IS_PUBLIC &
+            ~ReflectionProperty::IS_STATIC &
+            ~ReflectionProperty::IS_READONLY
+        ) as $property) {
             $data[$property->name] = $this->{$property->name} ?? null;
         }
         foreach ($extraProperties as $property) {
