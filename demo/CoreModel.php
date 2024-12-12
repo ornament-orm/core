@@ -2,11 +2,12 @@
 
 namespace Ornament\Demo;
 
-use Ornament\Core\Model;
+use Ornament\Core\{ Model, FromIterable };
 
 class CoreModel
 {
     use Model;
+    use FromIterable;
 
     public readonly int $id;
 
