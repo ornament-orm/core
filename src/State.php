@@ -14,12 +14,7 @@ trait State
     public function isDirty() : bool
     {
         $reflection = new ReflectionObject($this);
-        foreach ($reflection->getProperties(
-            ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED & ~ReflectionProperty::IS_STATIC
-        ) as $property) {
-            if ($property->name == '__initial') {
-                continue;
-            }
+        foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC) as $property) {
             if ($this->isModified($property->name)) {
                 return true;
             }
@@ -45,7 +40,12 @@ trait State
      */
     public function isModified(string $property) : bool
     {
-        return ($this->__initial?->$property ?? null) !== ($this->$property ?? null);
+        $initial = Repository::getInitial($this);
+        if (isset($this->$property, $initial->$property)) {
+            return $initial->$property !== $this->$property;
+        }
+
+        return false;
     }
 
     /**
@@ -55,7 +55,7 @@ trait State
      */
     public function markPristine() : void
     {
-        $this->__initial = clone $this;
+        Repository::setInitial($this);
     }
 }
 
