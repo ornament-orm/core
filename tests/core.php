@@ -1,7 +1,50 @@
 <?php
 
-use Ornament\Demo\{ CoreModel, DecoratedModel, DateTimeModel, SubtractOne };
+use Ornament\Core\{ Model, Getter, Decorator, Construct };
 use Gentry\Gentry\Wrapper;
+
+class CoreModel
+{
+    use Model;
+
+    public readonly int $id;
+
+    public string $name = 'Marijn';
+
+    private bool $invisible = true;
+}
+
+class SubtractOne extends Decorator
+{
+    public function getSource() : int
+    {
+        return $this->_source - 1;
+    }
+}
+
+class DecoratedModel
+{
+    use Model;
+
+    public SubtractOne $field;
+
+    /**
+     * @return string
+     */
+    #[Getter("virtual_property")]
+    protected function getVirtualPropertyDemo() :? string
+    {
+        return (string)($this->field ?? '');
+    }
+}
+
+class DateTimeModel
+{
+    use Model;
+
+    #[Construct(new DateTimeZone('Asia/Tokyo'))]
+    public readonly DateTime $datecreated;
+}
 
 /**
  * Tests for core Ornament functionality.
@@ -10,7 +53,7 @@ return function () : Generator {
     $flag = ReflectionProperty::IS_PUBLIC & ~ReflectionProperty::IS_STATIC;
     /** Core models should have only the basic functionality: expose properties via magic getters and setters */
     yield function () use ($flag) : void {
-        $model = new Wrapper(CoreModel::fromIterable(['id' => '1']), null, $flag);
+        $model = new Wrapper(new CoreModel(['id' => '1']), null, $flag);
         assert(isset($model->id));
         assert($model->id === 1);
         assert(!isset($model->invisible1));
