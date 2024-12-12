@@ -23,10 +23,5 @@
         "psr-4": {
             "Ornament\\Core\\": "src/"
         }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Ornament\\Demo\\": "demo/"
-        }
     }
 }
