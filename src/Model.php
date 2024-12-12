@@ -31,7 +31,7 @@ trait Model
     public function __construct(iterable $input = null)
     {
         if (isset($input)) {
-            $cache = $this->__getModelPropertyDecorations();
+            $cache = Helpers::getModelPropertyDecorations($this);
             foreach ($cache['properties'] as $field => $annotations) {
                 if (array_key_exists($field, $input)) {
                     $this->$field = $this->ornamentalize($field, $input[$field]);
@@ -93,7 +93,7 @@ trait Model
      */
     public function __get(string $prop)
     {
-        $cache = $this->__getModelPropertyDecorations();
+        $cache = Helpers::getModelPropertyDecorations($this);
         if (isset($cache['methods'][$prop])) {
             return $this->{$cache['methods'][$prop]}();
         }
@@ -118,7 +118,7 @@ trait Model
      */
     public function __isset(string $prop) : bool
     {
-        $cache = $this->__getModelPropertyDecorations();
+        $cache = Helpers::getModelPropertyDecorations($this);
         if (isset($cache['methods'][$prop])) {
             return true;
         }
@@ -131,37 +131,6 @@ trait Model
             return isset($this->$prop);
         }
         return false;
-    }
-
-    /**
-     * Get the persistable data for this model.
-     *
-     * On rare occasions, properties may be non-public but still eligible for
-     * (re)saving. A good example of this would be a password, which you want to
-     * store encrypted, but set unencrypted via a method (so the encryption is
-     * enforced). Basically the same goes for anything confidential that needs
-     * mangling (e.g. credit card number) or other special treatment (image data
-     * passed a binary but stored base64-encoded).
-     *
-     * @param array $extraProperties Array of non-public properties to store
-     *  regardless.
-     * @return array
-     */
-    public function getPersistableData(array $extraProperties = []) : array
-    {
-        $data = [];
-        $reflection = new ReflectionObject($this);
-        foreach ($reflection->getProperties(
-            ReflectionProperty::IS_PUBLIC &
-            ~ReflectionProperty::IS_STATIC &
-            ~ReflectionProperty::IS_READONLY
-        ) as $property) {
-            $data[$property->name] = $this->{$property->name} ?? null;
-        }
-        foreach ($extraProperties as $property) {
-            $data[$property] = $this->$property ?? null;
-        }
-        return $data;
     }
 
     /**
@@ -187,7 +156,7 @@ trait Model
      */
     protected function ornamentalize(string $field, mixed $value) : mixed
     {
-        $cache = $this->__getModelPropertyDecorations();
+        $cache = Helpers::getModelPropertyDecorations($this);
         if (!isset($cache['properties'][$field])) {
             throw new PropertyNotDefinedException(get_class($this), $field);
         }
@@ -223,42 +192,6 @@ trait Model
         } else {
             return $value;
         }
-    }
-
-    protected function __getModelPropertyDecorations() : array
-    {
-        static $cache = [];
-        if (!$cache) {
-            $reflection = new ReflectionClass($this);
-            $cache['class'] = $reflection->getAttributes();
-            $cache['methods'] = [];
-            foreach ($reflection->getMethods() as $method) {
-                $attributes = $method->getAttributes(Getter::class);
-                if ($attributes) {
-                    foreach ($attributes as $attribute) {
-                        $cache['methods'][$attribute->newInstance()->property] = $method->getName();
-                    }
-                }
-            }
-            $properties = $reflection->getProperties((ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED) & ~ReflectionProperty::IS_STATIC);
-            $cache['properties'] = [];
-            foreach ($properties as $property) {
-                $attributes = $property->getAttributes(NoDecoration::class);
-                if ($attributes) {
-                    continue;
-                }
-                $name = $property->getName();
-                $anns = [];
-                if ($type = $property->getType()) {
-                    $anns['var'] = $type->getName();
-                    $anns['isNullable'] = $type->allowsNull();
-                    $anns['isEnum'] = enum_exists($anns['var']);
-                }
-                $anns['readOnly'] = $property->isReadOnly();
-                $cache['properties'][$name] = $anns;
-            }
-        }
-        return $cache;
     }
 }
 
