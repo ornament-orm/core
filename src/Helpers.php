@@ -2,7 +2,9 @@
 
 namespace Ornament\Core;
 
-abstract final class Helpers
+use ReflectionClass, ReflectionProperty;
+
+abstract class Helpers
 {
     public static function getModelPropertyDecorations(object $model) : array
     {
