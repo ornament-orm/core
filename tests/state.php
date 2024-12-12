@@ -1,7 +1,19 @@
 <?php
 
-use Ornament\Demo\StateModel;
+use Ornament\Core\{ Model, State };
 use Gentry\Gentry\Wrapper;
+
+class StateModel
+{
+    use Model;
+    use State;
+
+    public readonly int $id;
+
+    public string $name = 'Marijn';
+
+    private bool $invisible = true;
+}
 
 /**
  * Tests for stateful models.
