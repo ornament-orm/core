@@ -11,13 +11,6 @@ use Error;
 trait Model
 {
     /**
-     * @var object
-     *
-     * Private storage of the model's initial state.
-     */
-    private $__initial;
-
-    /**
      * @var callable
      */
     private static $arrayToModelTransformer;
@@ -34,11 +27,11 @@ trait Model
             $cache = Helpers::getModelPropertyDecorations($this);
             foreach ($cache['properties'] as $field => $annotations) {
                 if (array_key_exists($field, $input)) {
-                    $this->$field = $this->ornamentalize($field, $input[$field]);
+                    $this->$field = Helpers::ornamentalize($this, $field, $input[$field]);
                 }
             }
         }
-        $this->__initial = clone $this;
+        Repository::setInitial($this);
     }
 
     /**
@@ -79,7 +72,7 @@ trait Model
         if ($property->isStatic()) {
             throw new Error("Only non-static properties can be `set` ($field in ".get_class($this).")");
         }
-        $this->$field = $this->ornamentalize($field, $value);
+        $this->$field = Helpers::ornamentalize($this, $field, $value);
     }
 
     /**
@@ -131,67 +124,6 @@ trait Model
             return isset($this->$prop);
         }
         return false;
-    }
-
-    /**
-     * Internal helper method to check if the given property is annotated as one
-     * of PHP's internal base types (int, float etc).
-     *
-     * @param string|null $type
-     * @return bool
-     */
-    protected static function checkBaseType(string $type = null) : bool
-    {
-        static $baseTypes = ['bool', 'int', 'float', 'string', 'array', 'object', 'null'];
-        return in_array($type, $baseTypes);
-    }
-
-    /**
-     * Ornamentalize the requested field. Usually this is called for you, but on
-     * occasions you may need to call it manually.
-     *
-     * @param string $field
-     * @param mixed $value
-     * @return mixed
-     */
-    protected function ornamentalize(string $field, mixed $value) : mixed
-    {
-        $cache = Helpers::getModelPropertyDecorations($this);
-        if (!isset($cache['properties'][$field])) {
-            throw new PropertyNotDefinedException(get_class($this), $field);
-        }
-        if (self::checkBaseType($cache['properties'][$field]['var'] ?? null)) {
-            if (is_scalar($value) && !strlen($value ?? '') && $cache['properties'][$field]['isNullable'] ?? false) {
-                return null;
-            }
-            return $value;
-        } elseif (isset($cache['properties'][$field]['var'])) {
-            if (!class_exists($cache['properties'][$field]['var'])) {
-                throw new DecoratorClassNotFoundException($cache['properties'][$field]['var']);
-            }
-            if ($cache['properties'][$field]['isEnum']) {
-                $enum = $cache['properties'][$field]['var'];
-                if ($cache['properties'][$field]['isNullable']) {
-                    return $enum::tryFrom($value);
-                } else {
-                    return $enum::from($value);
-                }
-            } else {
-                $arguments = [$value];
-                $reflection = new ReflectionProperty($this, $field);
-                if (is_a($cache['properties'][$field]['var'], Decorator::class, true)) {
-                    $arguments[] = $reflection;
-                }
-                $attributes = $reflection->getAttributes(Construct::class);
-                foreach ($attributes as $attribute) {
-                    $attribute = $attribute->newInstance();
-                    $arguments[] = $attribute->getValue();
-                }
-                return new $cache['properties'][$field]['var'](...$arguments);
-            }
-        } else {
-            return $value;
-        }
     }
 }
 
