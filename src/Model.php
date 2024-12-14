@@ -40,8 +40,23 @@ trait Model
                 }
             }
         }
-
         Repository::setInitial($this);
+    }
+
+    /**
+     * Overloaded getter. This allows virtual properties to be retrieved.
+     *
+     * @param string $prop Name of the property.
+     * @return mixed The property's value.
+     * @throws Error if the property is unknown.
+     */
+    public function __get(string $prop)
+    {
+        $cache = Helpers::getModelPropertyDecorations($this);
+        if (isset($cache['methods'][$prop])) {
+            return $this->{$cache['methods'][$prop]}();
+        }
+        throw new Error("Unknown virtual property `$prop`");
     }
 
     /**
