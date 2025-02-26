@@ -23,7 +23,7 @@ trait Model
      * @param iterable|null $input
      * @return void
      */
-    public function __construct(iterable $input = null)
+    public function __construct(?iterable $input = null)
     {
         if (isset($input)) {
             $cache = Helpers::getModelPropertyDecorations($this);
@@ -57,6 +57,12 @@ trait Model
             return $this->{$cache['methods'][$prop]}();
         }
         throw new Error("Unknown virtual property `$prop`");
+    }
+
+    public function __isset(string $prop) : bool
+    {
+        $cache = Helpers::getModelPropertyDecorations($this);
+        return isset($cache['methods'][$prop]);
     }
 
     /**
