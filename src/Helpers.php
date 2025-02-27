@@ -50,7 +50,7 @@ abstract class Helpers
      * @param string|null $type
      * @return bool
      */
-    public static function checkBaseType(string $type = null) : bool
+    public static function checkBaseType(?string $type = null) : bool
     {
         static $baseTypes = ['bool', 'int', 'float', 'string', 'array', 'object', 'null'];
         return in_array($type, $baseTypes);
