@@ -2,6 +2,8 @@
 
 namespace Ornament\Core;
 
+use ReflectionObject, ReflectionProperty;
+
 trait Persistable
 {
     /**
