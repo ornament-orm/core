@@ -41,12 +41,32 @@ class FooModel
 }
 ```
 
-Here, we indicated (via type-hinting) that the `datecreated` propery should
+Here, we indicated (via type-hinting) that the `datecreated` property should
 actually contain a `DateTime` object. It is also readonly, since the creation
 date is not very likely to ever change.
 
 Ornament defines a default constructor which assumes one argument: a hash of
-key/value pairs for your model's properties.
+key/value pairs for your model's properties. If you require a constructor for
+your model (e.g. because you need to inject dependencies) you may alias the
+default constructor and call it manually. An example:
+
+```php
+<?php
+
+use Ornament\Core\Model;
+
+class FooModel
+{
+    use Model {
+        Model::__construct as ornamentConstruct;
+    }
+
+    public function __construct(private MyDependency $foo, ?iterable $input = null)
+    {
+        $this->ornamentConstruct($input);
+    }
+}
+```
 
 Decorated properties assume the decorating class accepts the _value_ as its
 first constructor argument. Additional arguments may be specified by annotating
@@ -58,7 +78,7 @@ property, one would write:
 ```php
 <?php
 
-use Ornament\Core\Model, Construct;
+use Ornament\Core\{ Model, Construct };
 
 class FooModel
 {
@@ -75,6 +95,9 @@ come with some utility methods, and receive by default a _second_ constructor
 argument: a `ReflectionProperty` of the original target field (so your custom
 decorator can also refer to any attributes your project may have defined for
 that specific property - or whatever other black magic you need to do).
+
+Extensions of the `Decorator` class can also add `Construct` attributes like
+above. These will be passed as the third etc. arguments to the constructor.
 
 ## Types
 Properties specifying one of the basic, built-in types (e.g. `int` or `string`)
@@ -138,86 +161,11 @@ PDO's `fetchObject` and related methods try to be clever by injecting
 properties based on fetched database columns _before_ the constructor is called.
 Hence, do not use `PDO::FETCH_OBJECT`; instead, use `PDO::FETCH_ASSOC`.
 
-## `FromIterable` trait
-Models may `use` the `Ornament\Core\FromIterable` trait for simple
-instantiation, also in callbacks:
-
-```php
-<?php
-
-use Ornament\Core;
-
-class MyModel
-{
-    use Core\Model;
-    use Core\FromIterable;
-
-    // properties...
-}
-
-$model = MyModel::fromIterable($singleRowFromDatabase);
-$models = MyModel::fromIterableCollection($multipleRowsFromDatabase);
-```
-
-In the above example, the single model is equivalent to
-`new MyModel($singleRowFromDatabase)`, and as such doesn't add much.
-PHP 7.4 or higher doesn't like that, since a decorated property will be of the
-wrong type!
-
-For this reason, it's now considered best practice to use `PDO::FETCH_ASSOC` and
-feeding the result through either `Model::fromIterable` (for `fetch`) or
-`Model::fromIterableCollection` (for `fetchAll`).
-
-E.g.:
-
-```php
-<?php
-
-// ...
-return MyModel::fromIterable($stmt->fetch(PDO::FETCH_ASSOC));
-```
-
-Versions of Ornament <0.14 did not have this limitation as they specifically
-worked with `fetchObject`; this is no longer possible on PHP 7.4+ so we strongly
-recommend you upgrade to 0.15 or higher.
-
-## Custom object instantiation
-Ornament supplies a constructor that expects key/value pairs of data to inject
-into the model. Sometimes this is not what you want; maybe you're extending a
-base class that expects each property to be specified as an argument to the
-constructor (or whatever, e.g. Laravel's `fill` method).
-
-Default behaviour can be overridden using the `initTransformer` static method,
-passing a callback which takes the iterable `$data` as its only argument and
-must return the constructed object:
-
-```php
-<?php
-
-MyModel::initTransformer(function (iterable $data) : MyModel {
-    return new MyModel($data['id'], $data['password']);
-});
-```
-
-These transformers are on a _per class_ basis. If you need it for _all_ your
-models, you should make them extend a base class and call `initTransformer` on
-that.
-
-## Loading and persisting models
-This is your job. Wait, what? Yes, Ornament is storage engine agnostic. You may
-use an RDBMS, interface with a JSON API or store your stuff in Excel files for
-all we care. We believe that you shouldn't tie your models to your storage
-engine.
-
-Our personal preference is to use "repositories" that handle this. Of course,
-you're free to make a base class model for yourself which implements `save()`
-or `delete()` methods or whatever.
-
 ## Stateful models
-Having said that, you're not completely on your own. Models may use the
-`Ornament\Core\State` trait to expose some convenience methods:
+Models may use the `Ornament\Core\State` trait to expose some convenience
+methods:
 
-- `isDirty()`: was the model changed since the last instantiation?
+- `isDirty()`: was the model changed since instantiation?
 - `isModified(string $property)`: specifically check if a property was modified.
 - `isPristine()`: the opposite of `isDirty`.
 - `markPristine()`: manually mark the model as pristine, e.g. after storing it.
@@ -229,8 +177,8 @@ determine how to proceed (e.g. skip an expensive `UPDATE` operation if the model
 
 ## Preventing properties from being decorated
 If your models are more than a "simple" data store, there might be properties on
-it you explicitly _don't_ want decorated. Note that any private or static
-property is already left alone.
+it you explicitly _don't_ want decorated. Note that any static property is
+already left alone.
 
 To explicitly tell Ornament to skip decoration for a public or protected
 property, add the attribute `Ornament\Core\NoDecoration` to it.
