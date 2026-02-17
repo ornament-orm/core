@@ -22,11 +22,10 @@ trait Persistable
     {
         $data = [];
         $reflection = new ReflectionObject($this);
-        foreach ($reflection->getProperties(
-            ReflectionProperty::IS_PUBLIC &
-            ~ReflectionProperty::IS_STATIC &
-            ~ReflectionProperty::IS_READONLY
-        ) as $property) {
+        foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
+            if ($property->isStatic() || $property->isReadOnly()) {
+                continue;
+            }
             $data[$property->name] = $this->{$property->name} ?? null;
         }
         foreach ($extraProperties as $property) {
